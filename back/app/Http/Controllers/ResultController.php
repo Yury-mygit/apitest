@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\DB;
 
 class ResultController extends Controller
 {
+    public $public = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4aX50d5Smj4XNUDaJiqTZmL1zF8I0ylWy6nNVzZVkcuO6gxzxiiCfnWy97YS8meMmkG682Yf2GoOGropTMntfu8m2wzEOj+69sK4JpT/h7y7/1Ij+jaYU4Ax/i55eopEFhsO2gRKMn97nGTksDO2cQ+EeOsbp0QIVm119PiFpZYwKNak4u+uNkfUav3D1ks/cAgZfNhcKyEuYlbRx7O5DPQXqv/N0dU3jityFUJwjOJIdknu93BGQzEosQyfHCxrNsVqn+WRsM3/7B78wY+3atpoCVYNY018aKlILR7ZuTy5VuAXiSivwYingmpsh/3U4e4POcGalHpyJtmCtbPZvwIDAQAB';
+     
+    
     private function makeFlatParamsArray($arrParams, $parent_name = '')
             {
                 $arrFlatParams = [];
@@ -33,7 +36,8 @@ class ResultController extends Controller
 
 
 
-    public function incom(Request $req){
+    
+            public function incom(Request $req){
 
         $amount = $req->input('amount');
         $description = $req->input('description');
@@ -241,9 +245,6 @@ class ResultController extends Controller
         return response()->json($ans);
     }
 
-
-
-
     public function result(Request $req){
 
         $input = $req->collect();
@@ -303,7 +304,7 @@ class ResultController extends Controller
 
     public function last(Request $req){
 
-// dd(';klk');
+
         $pay = new NewPayments();
         $pay->save();
 
@@ -313,7 +314,121 @@ class ResultController extends Controller
         return response($pay->id);
     }
 
+    // sdk
+    public function cardtokenization(Request $req){
+
+        $array = [
+            'type' => 'bank_card',
+            'options' => [
+              'card_number' => '4111111111111111',
+              'card_holder_name' => 'NAME',
+              'card_exp_month' => '12',
+              'card_exp_year' => '24',
+            ]
+          ];
+          $json = json_encode($array); // Переводим данные в json
+        //   dd($json);
+          $base64 = base64_encode($json); // Кодируем в Base64
+        //   dd($base64);
+          $chunks = str_split($base64, 200); // Разбиваем на части по 200 символов
+          
+        //   dd(strlen($chunks[0]));
+          $result = [];
+
+          $keyFinal = "-----BEGIN PUBLIC KEY-----\r\n" . chunk_split($this->public) . "-----END PUBLIC KEY-----";
+          
+
+          foreach ($chunks as $chunk) {
+              openssl_public_encrypt($chunk, $encrypted, $keyFinal); // Шифруем публичным ключом
+              $result[] = base64_encode($encrypted); // Снова кодируем в base64
+          }
+          
+         $body = [
+            'data'=> $result,
+            'token'=> 'YZ3GDIAMV1qAxuwlUphbZ2l4hKVMzHRC'
+         ];
+
+        // dd($result);
+        $response = Http::withHeaders([
+            'Content-type' => 'application/json',
+            'Request-Id' => '16'
+        ])->post('https://api.paybox.money/v5/sdk/tokenize', $body);
+        
+        return response( $response);
+    }
+
+
+    //SDK
+    public function sdkpay(Request $req){
+
+        $input = $req->collect();
+
+        $data = [
+            "order_id"        => '577',
+            "auto_clearing"  => 1,
+            "amount"            => 10,
+            "currency"            => "RUB",
+            "description"            => "Описание заказа",
+            "test"            => 0,
+            "options"            => [
+            //   "custom_params"            => [],
+              "user"            => [
+                "email"            => "yury.myworkmail@gmail.com",
+                "phone"            => "+79104769733"
+              ]
+            ],
+            "transaction"  => [
+              "type"  => "tokenized_card",
+            //   "type"  => "bank_card",
+              "options"  => [
+                "token"  => $input['token'],
+                "card_cvv"  => $input['cvv']
+                ]
+            ]
+        ];
+
+
+        $json = json_encode($data); // Переводим данные в json
+        // dd($json);
+        $base64 = base64_encode($json); // Кодируем в Base64
+        // dd($base64);
+        $chunks = str_split($base64, 200); // Разбиваем на части по 200 символов
+        // dd(strlen($chunks[0]));
+        $result = [];
+
+        $keyFinal = "-----BEGIN PUBLIC KEY-----\r\n" . chunk_split($this->public) . "-----END PUBLIC KEY-----";
+        
+
+        foreach ($chunks as $chunk) {
+            openssl_public_encrypt($chunk, $encrypted, $keyFinal); // Шифруем публичным ключом
+            $result[] = base64_encode($encrypted); // Снова кодируем в base64
+        }
+        
+        $body = [
+        'data'=>$result,
+        'token'=> 'YZ3GDIAMV1qAxuwlUphbZ2l4hKVMzHRC'
+        ] ;
+       
+
+        // dd($body['data']);
+        // dd($body);
+        $response = Http::withHeaders([
+            'Content-type' => 'application/json',
+            'Request-Id' => '18'
+        ])->post('https://api.paybox.money/v5/sdk/charge', $body);
+
+
+        return response( $response);
+        // return response($data);
+        
+    }
     
+    // card save
+  
+
+
+  
+
 }
 
 
