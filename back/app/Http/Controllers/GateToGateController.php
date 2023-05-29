@@ -49,8 +49,8 @@ class GateToGateController extends Controller
         $secret_key = 'i0soXJL1pPQayDSs';
 
 
-        $input = $req->all();
-        return response()->json($input);
+        // $input = $req->all();
+        // return response()->json($input);
 
         $ans = DB::table('new_pay')
         -> insertGetId([
@@ -88,7 +88,7 @@ class GateToGateController extends Controller
 
             'pg_auto_clearing' => 0,
             'pg_testing_mode' => 0,
-            'pg_result_url' => 'https://416b-46-39-54-23.ngrok-free.app/api/result'
+            'pg_result_url' => 'https://8c98-46-39-54-110.ngrok-free.app/api/result'
 
         ];
     
@@ -123,7 +123,7 @@ class GateToGateController extends Controller
         $acsurl = $xmlObject->pg_3d_acsurl;
         $pareq = $xmlObject->pg_3d_pareq;
 
-        $TermUrl =  'https://416b-46-39-54-23.ngrok-free.app/api/g2g/result3ds';   
+        $TermUrl =  'https://8c98-46-39-54-110.ngrok-free.app/api/g2g/result3ds';   
             
         $data = [
             'MD'=> $md,
@@ -132,7 +132,7 @@ class GateToGateController extends Controller
             // '$acsurl' =>$acsurl,
         ];
         return response()->json([
-            'url' => 'https://416b-46-39-54-23.ngrok-free.app/api/g2g/checking3ds'.'?id='.$ans,
+            'url' => 'https://8c98-46-39-54-110.ngrok-free.app/api/g2g/checking3ds'.'?id='.$ans,
         ]);
         // dd($xmlObject);
         // return response()->json($xmlObject);
@@ -147,28 +147,191 @@ class GateToGateController extends Controller
         // ]);     
     }
 
-    public function result(Request $res){
-        $input = $res->all;
-
-        return response()->json($input);
-
-    }
-
-    public function result3ds(Request $req){
+    public function paystart(Request $req){
 
         $input = $req->all();
+        $secret_key = $input['secret_key'];
 
-        Storage::disk('local')->put('3DSresponce.txt', implode('|', $input));
-        // Storage::disk('local')->re
+        unset($input['secret_key']);
 
-        return response('sds');
+        $request = $requestForSignature = $input;
+
+        $requestForSignature = $this->makeFlatParamsArray($requestForSignature);
+
+        
+        // Генерация подписи
+        ksort($requestForSignature); // Сортировка по ключю
+        array_unshift($requestForSignature, 'payment'); // Добавление в начало имени скрипта
+        array_push($requestForSignature, $secret_key); // Добавление в конец секретного ключа
+        
+        $request['pg_sig'] = md5(implode(';', $requestForSignature)); // Полученная подпись
+        
+
+        $g2gresponse = Http::asForm()->post('https://api.paybox.money/g2g/payment',$request);
+        Storage::disk('local')->put('g2gResponce.txt', $g2gresponse);
+
+        $str = $g2gresponse->body();
+        $str = str_replace('"', '\"', $str);
+
+
+        $xmlObject = simplexml_load_string($g2gresponse);
+
+        $responseData = json_decode(json_encode((array)$xmlObject), TRUE);
+
+        // dd($responseData);
+
+        if ($responseData['pg_status']=='error') {
+            $data = [ 'xml'=>$str, 'pg_status'=> $responseData['pg_status']   ];
+            return response()->json($data );
+        }
+
+        // dd($responseData);
+
+        $ans = DB::table('new_pay')
+        -> insertGetId([
+            'type'             => 'g2gpayment',
+            'pg_amount'        => $input['pg_amount'],
+            'pg_description'   => $input['pg_description'],
+            'pg_salt'          => $input['pg_salt'],
+            'pg_3ds'           => $responseData['pg_3ds'] ?? false,
+            'pg_3d_acsurl'     => $responseData['pg_3d_acsurl'] ?? 'no data',
+            'pg_3d_pareq'      => $responseData['pg_3d_pareq'] ?? 'no data',
+            'pg_payment_id'    => $responseData['pg_payment_id'] ,
+            
+        ]);
+
+
+      
+
+        if ($responseData['pg_3ds']==0){
+
+            return response()->json($responseData);
+
+        };
+
+           
+       
+        
+        $TermUrl =  'https://8c98-46-39-54-110.ngrok-free.app/api/g2g/result3ds/'.$ans;
+
+        NewPayments::where('id', $ans) ->update(['TermUrl' => $TermUrl]);
+        
+
+        if (is_array($responseData['pg_3d_md']) && empty( $responseData['pg_3d_md'] )) $responseData['pg_3d_md'] = '';
+               
+        $responseData['TermUrl'] = $TermUrl;
+        $responseData['paument_number'] = $ans;
+        $responseData['xml'] = $str;
+
+      
+       
+
+        return response()->json($responseData );
+        
+
     }
 
-    public function checking3ds(Request $req){
+  
+
+  
+
+    public function perform3ds(Request $req){
         // return ('Hellqsao World'); 
         // return view('welcome', ['name' => 'James']);
         // $id = uniqid();
-        $id = $req->input('id');;
-        return view('check', array('name' => 'Taylor', 'id'=>$id));
+
+        $id = NewPayments::where('id', $req->input('id'))->get();
+        
+        $pg_3d_acsurl = $id[0]->pg_3d_acsurl;
+        $pg_3d_md = $id[0]->pg_3d_md;
+        // $pg_3d_md = 'sdsd';
+        $pg_3d_pareq = $id[0]->pg_3d_pareq;
+        $TermUrl = $id[0]->TermUrl;
+
+        return view('check', array( 
+            'pg_3d_acsurl' =>$pg_3d_acsurl,
+            'pg_3d_md'     =>$pg_3d_md,
+            'pg_3d_pareq'  =>$pg_3d_pareq,
+            'TermUrl'      =>$TermUrl,
+        ));
+    }
+
+    public function result3ds(Request $req, string $id){
+
+        $input = $req->all();
+
+        // $rec = NewPayments::where('id', $id)->get();
+
+        NewPayments::where('id', $id) ->update([
+            'pg_3d_pares' => $input['PaRes'],
+            'pg_3d_md' => $input['MD'],
+        ]);
+
+        $flattened = $input;
+        array_walk($flattened, function(&$value, $key) {
+            $value = "{$key}:{$value}";
+        });
+        
+
+        Storage::disk('local')->put('3DSresponce.txt',  implode(', ', $flattened));
+        // Storage::disk('local')->re
+
+        return response('ok');
+    }
+
+
+    public function pares(Request $req) {
+
+        $id = $req->input('id');
+
+        $data = NewPayments::where('id', $id)->get();
+        $pg_3d_pares = $data[0]->pg_3d_pares;
+
+        if ($pg_3d_pares==Null) return response()->json(['pares'=>'no data']);
+
+        return response()->json(['pg_3d_pares'=>$pg_3d_pares]);
+    }
+
+    public function payafter3ds(Request $req) {
+        $id = $req->input('id');
+        $secret_key = $req->input('secret_key');
+        $pg_merchant_id = $req->input('pg_merchant_id');
+        
+        $data = NewPayments::where('id', $id)->get()[0];
+
+        $request = [
+            'pg_3d_md'   => $data->pg_3d_md? $data->pg_3d_md : '',
+            'pg_pares'   => $data->pg_3d_pares,
+            'pg_payment_id'   => $data->pg_payment_id,
+            'pg_merchant_id'   => $pg_merchant_id,
+            'pg_salt'   => $data->pg_salt,
+        ];
+
+
+        $requestForSignature = $request;
+
+        $requestForSignature = $this->makeFlatParamsArray($requestForSignature);
+
+        
+        // Генерация подписи
+        ksort($requestForSignature); // Сортировка по ключю
+        array_unshift($requestForSignature, 'paymentAcs'); // Добавление в начало имени скрипта
+        array_push($requestForSignature, $secret_key); // Добавление в конец секретного ключа
+        
+        // dd(implode(';', $requestForSignature));
+
+        $request['pg_sig'] = md5(implode(';', $requestForSignature)); // Полученная подпись
+
+        $response = Http::asForm()->post('https://api.paybox.money/g2g/paymentAcs',$request);
+        Storage::disk('local')->put('g2gResponce.txt', $response);
+
+        
+        // paymentAcs;;541637;ewogICJ0aHJlZURTU2VydmVyVHJhbnNJRCIgOiAiODQ2YzA4NTQtMjliYS00OWMxLTkwNzgtY2M4ZGE0MTI0NzIyIiwKICAibWVzc2FnZVR5cGUiIDogIkNSZXMiLAogICJtZXNzYWdlVmVyc2lvbiIgOiAiMi4xLjAiLAogICJhY3NUcmFuc0lEIiA6ICJiNzk1YWEyMi01NWI0LTQ5NDAtYWIzMC1iMDg3M2I4MjRiNGEiLAogICJjaGFsbGVuZ2VDb21wbGV0aW9uSW5kIiA6ICJZIiwKICAidHJhbnNTdGF0dXMiIDogIlkiCn0;888888888;abcde;i0soXJL1pPQayDSs
+        // 41d3b9b1f662888cbd7069896decce41
+
+        $str = $response->body();
+        $str = str_replace('"', '\"', $str);
+
+        return response()->json($str);
     }
 }

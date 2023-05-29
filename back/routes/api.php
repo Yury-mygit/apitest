@@ -6,6 +6,7 @@ use App\Http\Controllers\ResultController;
 use App\Http\Controllers\CardController;
 use App\Http\Controllers\GateToGateController;
 use App\Http\Controllers\PayController;
+use App\Http\Middleware\Cors;
 
 /*
 |--------------------------------------------------------------------------
@@ -64,11 +65,14 @@ Route::post('/card/result', [CardController::class, 'result']);
 
 //G2G payment
 //**************************************************************** */
-Route::post('/g2g/pay', [GateToGateController::class, 'g2gpay']);
-Route::post('/g2g/result', [GateToGateController::class, 'result']);
-Route::post('/g2g/result3ds', [GateToGateController::class, 'result3ds']);
-Route::get('/g2g/checking3ds', [GateToGateController::class, 'checking3ds']);
-
+// Route::post('/g2g/pay', [GateToGateController::class, 'g2gpay']);
+Route::post('/g2g/paystart', [GateToGateController::class, 'paystart']);
+// Route::post('/g2g/result', [GateToGateController::class, 'result']);
+Route::post('/g2g/result3ds/{id}', [GateToGateController::class, 'result3ds']);
+Route::get('/g2g/perform3ds', [GateToGateController::class, 'perform3ds']);
+Route::get('/g2g/pares', [GateToGateController::class, 'pares'])
+ ->withoutMiddleware([Cors::class]);
+ Route::post('/g2g/payafter3ds', [GateToGateController::class, 'payafter3ds']);
 
 
 Route::post('/test/pay', [PayController::class, 'put']);
