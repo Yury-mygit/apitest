@@ -241,6 +241,8 @@ class GateToGateController extends Controller
         // $id = uniqid();
 
         $id = NewPayments::where('id', $req->input('id'))->get();
+
+        dd($id);
         
         $pg_3d_acsurl = $id[0]->pg_3d_acsurl;
         $pg_3d_md = $id[0]->pg_3d_md;

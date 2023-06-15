@@ -27,7 +27,7 @@ Route::get('/greeting', [ResultController::class, 'incom']);
 Route::post('/add', [ResultController::class, 'add']);
 
 
-Route::get('/test', [ResultController::class, 'test']);
+Route::post('/test', [ResultController::class, 'test']);
 
 //******************************************************************* */
 //Запросы в платежную системы
