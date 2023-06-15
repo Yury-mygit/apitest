@@ -2,16 +2,19 @@ version: '3'
 services:
   php: 
     build: 
-      # context: ./docker
+      context: ./docker
       dockerfile: php.dockerfile
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
     restart: unless-stopped
-    # ports:
-    #   - "9000:9000"
-    # volumes:
-    #   - ./back:/var/www/html:delegated
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./back:/var/www/html:delegated
+    depends_on:
+      - db
+      - webserver
     networks: 
       - laravel    
 
@@ -58,7 +61,7 @@ services:
         - GID=${GID:-1000}
     restart: unless-stopped
     ports:
-      - 80:80
+      - 8088:80
     volumes:
       - ./back:/var/www/html
     networks:

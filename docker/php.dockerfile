@@ -12,12 +12,9 @@ WORKDIR /var/www/html
 
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
-RUN apk add git
+# RUN apk add git
 
-RUN git clone https://github.com/Yury-mygit/apitest.git
-
-
-
+# RUN git clone https://github.com/Yury-mygit/apitest.git
 
 # ADD /back /var/www/html/
 
@@ -40,21 +37,19 @@ RUN sed -i "s/user = www-data/user = laravel/g" /usr/local/etc/php-fpm.d/www.con
     && sed -i "s/group = www-data/group = laravel/g" /usr/local/etc/php-fpm.d/www.conf \
     && echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf
 
-WORKDIR /var/www/html/apitest/back
-
-RUN composer install
+# RUN composer install --no-scripts --no-interaction
 
 # RUN php artisan key:generate
 # RUN php artisan migrate
 # RUN php artisan serve
 
-WORKDIR /var/www/html
+# WORKDIR /var/www/html
 
-COPY .env /var/www/html/apitest/back/
+# COPY .env /var/www/html/apitest/back/
 
 USER laravel
 
 # RUN composer install
 
 # CMD ["php","artisan","serve","--host=0.0.0.0"]
-# CMD ["php-fpm", "-y", "/usr/local/etc/php-fpm.conf", "-R"]
+CMD ["php-fpm", "-y", "/usr/local/etc/php-fpm.conf", "-R"]
