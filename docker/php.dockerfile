@@ -9,14 +9,17 @@ ENV GID=${GID}
 RUN mkdir -p /var/www/html
 
 WORKDIR /var/www/html
+ADD . /var/www/html/
+# COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
+COPY --from=composer /usr/bin/composer /usr/bin/composer
+COPY composer.* .
 
-COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
-
-# RUN apk add git
+# RUN composer  install
+ # RUN apk add git
 
 # RUN git clone https://github.com/Yury-mygit/apitest.git
 
-# ADD /back /var/www/html/
+
 
 # CMD ['CMD', 'co']
 
@@ -37,15 +40,6 @@ RUN sed -i "s/user = www-data/user = laravel/g" /usr/local/etc/php-fpm.d/www.con
     && sed -i "s/group = www-data/group = laravel/g" /usr/local/etc/php-fpm.d/www.conf \
     && echo "php_admin_flag[log_errors] = on" >> /usr/local/etc/php-fpm.d/www.conf
 
-# RUN composer install --no-scripts --no-interaction
-
-# RUN php artisan key:generate
-# RUN php artisan migrate
-# RUN php artisan serve
-
-# WORKDIR /var/www/html
-
-# COPY .env /var/www/html/apitest/back/
 
 USER laravel
 
