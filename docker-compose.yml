@@ -2,14 +2,14 @@ version: '3'
 services:
   php: 
     build: 
-      context: ./docker
-      dockerfile: php.dockerfile
+      context: ./
+      dockerfile: docker/php.dockerfile
       args:
         - UID=${UID:-1000}
         - GID=${GID:-1000}
     restart: unless-stopped
-    ports:
-      - "9000:9000"
+    # ports:
+    #   - "9000:9000"
     volumes:
       - ./back:/var/www/html:delegated
     depends_on:
@@ -27,8 +27,8 @@ services:
       # - MYSQL_ALLOW_EMPTY_PASSWORD
       - MYSQL_ROOT_PASSWORD=123    
       # - MYSQL_PASSWORD=
-    ports:
-      - 3306:80
+    # ports:
+    #   - 3306:80
     networks:
       - laravel
 
@@ -50,8 +50,6 @@ services:
     networks:
     # define your network where all containers are connected to each other
       - laravel
-   
-
 
   webserver:
     build: 
@@ -61,7 +59,7 @@ services:
         - GID=${GID:-1000}
     restart: unless-stopped
     ports:
-      - 8088:80
+      - 80:80
     volumes:
       - ./back:/var/www/html
     networks:

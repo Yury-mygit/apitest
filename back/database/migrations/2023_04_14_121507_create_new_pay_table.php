@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('lc_salt')->nullable(true);
            
             $table->integer('pg_payment_id')->nullable(true);
-
+            $table->string('type')->nullable(true);
             $table->float ('pg_amount')->nullable(true);
             $table->string('pg_description')->nullable(true);
             $table->string('pg_salt')->nullable(true);
@@ -49,6 +49,12 @@ return new class extends Migration
 	        $table->integer('pg_recurring_start')->nullable(true);                  
 	        $table->integer('pg_recurring_lifetime')->nullable(true);                  
 	        $table->string('pg_receipt_positions_id')->nullable(true); 
+	        $table->boolean('pg_3ds')->nullable(true); 
+	        $table->string('pg_3d_acsurl')->nullable(true); 
+	        $table->string('pg_3d_pareq',2000)->nullable(true); 
+	        $table->string('pg_3d_pares')->nullable(true); 
+	        $table->string('pg_3d_md')->nullable(true); 
+	        $table->string('TermUrl')->nullable(true); 
 
             
 

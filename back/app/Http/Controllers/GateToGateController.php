@@ -200,7 +200,7 @@ class GateToGateController extends Controller
             
         ]);
 
-
+        // dd($responseData);
       
 
         if ($responseData['pg_3ds']==0){
