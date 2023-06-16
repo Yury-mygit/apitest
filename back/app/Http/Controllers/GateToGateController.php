@@ -158,6 +158,7 @@ class GateToGateController extends Controller
 
         $requestForSignature = $this->makeFlatParamsArray($requestForSignature);
 
+        // dd('sdss');
         
         // Генерация подписи
         ksort($requestForSignature); // Сортировка по ключю
