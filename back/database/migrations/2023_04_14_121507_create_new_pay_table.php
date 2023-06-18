@@ -52,7 +52,7 @@ return new class extends Migration
 	        $table->boolean('pg_3ds')->nullable(true); 
 	        $table->string('pg_3d_acsurl')->nullable(true); 
 	        $table->string('pg_3d_pareq',2000)->nullable(true); 
-	        $table->string('pg_3d_pares')->nullable(true); 
+	        $table->string('pg_3d_pares',2000)->nullable(true); 
 	        $table->string('pg_3d_md')->nullable(true); 
 	        $table->string('TermUrl')->nullable(true); 
 

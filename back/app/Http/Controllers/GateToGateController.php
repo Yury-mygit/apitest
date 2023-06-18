@@ -11,6 +11,8 @@ use App\views\check;
 // use resources\views\chech;
 use Illuminate\Support\Facades\DB;
 
+
+
 class GateToGateController extends Controller
 {
     //
@@ -211,9 +213,9 @@ class GateToGateController extends Controller
         };
 
            
-       
+        $server = env('SERVER');
         
-        $TermUrl =  'https://8c98-46-39-54-110.ngrok-free.app/api/g2g/result3ds/'.$ans;
+        $TermUrl =  $server.'/api/g2g/result3ds/'.$ans;
 
         NewPayments::where('id', $ans) ->update(['TermUrl' => $TermUrl]);
         
@@ -243,7 +245,7 @@ class GateToGateController extends Controller
 
         $id = NewPayments::where('id', $req->input('id'))->get();
 
-        dd($id);
+        // dd($id);
         
         $pg_3d_acsurl = $id[0]->pg_3d_acsurl;
         $pg_3d_md = $id[0]->pg_3d_md;
