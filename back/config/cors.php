@@ -16,11 +16,12 @@ return [
     */
 
     // 'paths' => ['api/*', 'sanctum/csrf-cookie'],
-    'paths' => ['*'],
+    'paths' => ['api/*'],
 
-    'allowed_methods' => ['*'],
+    'allowed_methods' => ['POST'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => ['example.com', '*.example.org'],
+    // 'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
@@ -30,6 +31,6 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => true, // was changet WAS false
+    'supports_credentials' => false, // was changet WAS false
 
 ];

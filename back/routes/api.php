@@ -19,9 +19,9 @@ use App\Http\Middleware\Cors;
 |
 */
 
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
-});
+// Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+//     return $request->user();
+// });
 
 Route::get('/greeting', [ResultController::class, 'incom']);
 Route::post('/add', [ResultController::class, 'add']);
@@ -67,11 +67,12 @@ Route::post('/card/result', [CardController::class, 'result']);
 //**************************************************************** */
 // Route::post('/g2g/pay', [GateToGateController::class, 'g2gpay']);
 Route::post('/g2g/paystart', [GateToGateController::class, 'paystart']);
+Route::post('/g2g/test', [GateToGateController::class, 'test']);
 // Route::post('/g2g/result', [GateToGateController::class, 'result']);
 Route::post('/g2g/result3ds/{id}', [GateToGateController::class, 'result3ds']);
 Route::get('/g2g/perform3ds', [GateToGateController::class, 'perform3ds']);
-Route::get('/g2g/pares', [GateToGateController::class, 'pares'])
- ->withoutMiddleware([Cors::class]);
+Route::get('/g2g/pares', [GateToGateController::class, 'pares']);
+//  ->withoutMiddleware([Cors::class]);
  Route::post('/g2g/payafter3ds', [GateToGateController::class, 'payafter3ds']);
 
 

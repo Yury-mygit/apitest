@@ -233,6 +233,15 @@ class GateToGateController extends Controller
         
 
     }
+    public function test(Request $req){
+
+        $input = $req->all();
+
+        return response()->json($input);
+
+       
+
+    }
 
   
 
@@ -301,42 +310,59 @@ class GateToGateController extends Controller
         $id = $req->input('id');
         $secret_key = $req->input('secret_key');
         $pg_merchant_id = $req->input('pg_merchant_id');
-        
-        $data = NewPayments::where('id', $id)->get()[0];
-
+    
+        $data = NewPayments::where('id', $id)->get()->first();
+    
+        if (!$data) {
+            return response()->json(['xml' => '', 'status' => 'error', 'message' => 'Payment with required id not found']);
+        }
+    
         $request = [
-            'pg_3d_md'   => $data->pg_3d_md? $data->pg_3d_md : '',
-            'pg_pares'   => $data->pg_3d_pares,
-            'pg_payment_id'   => $data->pg_payment_id,
-            'pg_merchant_id'   => $pg_merchant_id,
-            'pg_salt'   => $data->pg_salt,
+            'pg_3d_md' => $data->pg_3d_md ? $data->pg_3d_md : '',
+            'pg_pares' => $data->pg_3d_pares,
+            'pg_payment_id' => $data->pg_payment_id,
+            'pg_merchant_id' => $pg_merchant_id,
+            'pg_salt' => $data->pg_salt,
         ];
-
-
+    
         $requestForSignature = $request;
-
         $requestForSignature = $this->makeFlatParamsArray($requestForSignature);
-
-        
-        // Генерация подписи
+    
         ksort($requestForSignature); // Сортировка по ключю
         array_unshift($requestForSignature, 'paymentAcs'); // Добавление в начало имени скрипта
         array_push($requestForSignature, $secret_key); // Добавление в конец секретного ключа
-        
-        // dd(implode(';', $requestForSignature));
-
+    
         $request['pg_sig'] = md5(implode(';', $requestForSignature)); // Полученная подпись
+    
+        $response = Http::asForm()->post('https://api.paybox.money/g2g/paymentAcs', $request);
+    
+       
 
-        $response = Http::asForm()->post('https://api.paybox.money/g2g/paymentAcs',$request);
-        Storage::disk('local')->put('g2gResponce.txt', $response);
-
-        
-        // paymentAcs;;541637;ewogICJ0aHJlZURTU2VydmVyVHJhbnNJRCIgOiAiODQ2YzA4NTQtMjliYS00OWMxLTkwNzgtY2M4ZGE0MTI0NzIyIiwKICAibWVzc2FnZVR5cGUiIDogIkNSZXMiLAogICJtZXNzYWdlVmVyc2lvbiIgOiAiMi4xLjAiLAogICJhY3NUcmFuc0lEIiA6ICJiNzk1YWEyMi01NWI0LTQ5NDAtYWIzMC1iMDg3M2I4MjRiNGEiLAogICJjaGFsbGVuZ2VDb21wbGV0aW9uSW5kIiA6ICJZIiwKICAidHJhbnNTdGF0dXMiIDogIlkiCn0;888888888;abcde;i0soXJL1pPQayDSs
-        // 41d3b9b1f662888cbd7069896decce41
-
-        $str = $response->body();
-        $str = str_replace('"', '\"', $str);
-
-        return response()->json($str);
+        $xml = $response->body();
+        // dd( $xml);
+        // $xml = str_replace('"', '\"', $xml);
+        $xml = simplexml_load_string($xml, "SimpleXMLElement", LIBXML_NOCDATA);
+        $json = json_encode($xml);
+        $data = json_decode($json, true);
+    
+        $params = [
+            'pg_payment_id' => isset($data['pg_payment_id']) ? $data['pg_payment_id'] : 'not data',
+            'pg_amount' => isset($data['pg_amount']) ? $data['pg_amount'] : 'not data',
+            'pg_clearing_amount' => isset($data['pg_clearing_amount']) ? $data['pg_clearing_amount'] : 'not data',
+            'pg_status' => isset($data['pg_status']) ? $data['pg_status'] : 'not data',
+            'pg_salt' => isset($data['pg_salt']) ? $data['pg_salt'] : 'not data',
+            'pg_sig' => isset($data['pg_sig']) ? $data['pg_sig'] : 'not data',
+            'pg_status_clearing' => isset($data['pg_status_clearing']) ? $data['pg_status_clearing'] : 'not data',
+            'pg_datetime' => isset($data['pg_datetime']) ? $data['pg_datetime'] : 'not data',
+            'pg_error_code' => isset($data['pg_error_code']) ? $data['pg_error_code'] : 'not data',
+            'pg_error_description' => isset($data['pg_error_description']) ? $data['pg_error_description'] : 'not data',
+        ];
+    
+        return response()->json(['xml' => $xml, 'status' => 'ok'] + $params);
     }
+    
 }
+
+
+ // paymentAcs;;541637;ewogICJ0aHJlZURTU2VydmVyVHJhbnNJRCIgOiAiODQ2YzA4NTQtMjliYS00OWMxLTkwNzgtY2M4ZGE0MTI0NzIyIiwKICAibWVzc2FnZVR5cGUiIDogIkNSZXMiLAogICJtZXNzYWdlVmVyc2lvbiIgOiAiMi4xLjAiLAogICJhY3NUcmFuc0lEIiA6ICJiNzk1YWEyMi01NWI0LTQ5NDAtYWIzMC1iMDg3M2I4MjRiNGEiLAogICJjaGFsbGVuZ2VDb21wbGV0aW9uSW5kIiA6ICJZIiwKICAidHJhbnNTdGF0dXMiIDogIlkiCn0;888888888;abcde;i0soXJL1pPQayDSs
+        // 41d3b9b1f662888cbd7069896decce41
