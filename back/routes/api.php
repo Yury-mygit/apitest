@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\APIhelpController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ResultController;
@@ -77,3 +78,9 @@ Route::get('/g2g/pares', [GateToGateController::class, 'pares']);
 
 
 Route::post('/test/pay', [PayController::class, 'put']);
+
+//API Help
+//*************************************************************** */
+Route::post('/testapi/init_payments',[APIhelpController::class, 'initPayments']);
+Route::get('/testapi/getPayments',[APIhelpController::class, 'getPayments']);
+// Route::post('/testapi/init_payments.php',[APIhelpController::class, 'initPayments']);
