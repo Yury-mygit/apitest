@@ -34,7 +34,8 @@ Route::post('/test', [ResultController::class, 'test']);
 //Запросы в платежную системы
 //******************************************************************* */
 //Запрос на проведение платежа
-Route::post('/pay', [ResultController::class, 'pay']);
+Route::post('/pay', [ResultController::class, 'pay_new']);
+// Route::post('/pay', [ResultController::class, 'pay']);
 //Запрос на сохранение карты
 Route::post('/cardsave', [ResultController::class, 'cardSave']);
 

@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use App\Models\NewPayments;
 use Illuminate\Support\Facades\DB;
 
+require 'libruary.php';
+
 class ResultController extends Controller
 {
     public $public = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4aX50d5Smj4XNUDaJiqTZmL1zF8I0ylWy6nNVzZVkcuO6gxzxiiCfnWy97YS8meMmkG682Yf2GoOGropTMntfu8m2wzEOj+69sK4JpT/h7y7/1Ij+jaYU4Ax/i55eopEFhsO2gRKMn97nGTksDO2cQ+EeOsbp0QIVm119PiFpZYwKNak4u+uNkfUav3D1ks/cAgZfNhcKyEuYlbRx7O5DPQXqv/N0dU3jityFUJwjOJIdknu93BGQzEosQyfHCxrNsVqn+WRsM3/7B78wY+3atpoCVYNY018aKlILR7ZuTy5VuAXiSivwYingmpsh/3U4e4POcGalHpyJtmCtbPZvwIDAQAB';
@@ -171,6 +173,43 @@ class ResultController extends Controller
             'url' => $url
         ]);
     }
+
+
+
+    public function pay_new(Request $request){
+
+        $input = $request->all();
+        $data  = $input['payment_data'];
+        $RequestUrl  = $input['url'];
+
+        if ( validationNoheader($data)->status !=='ok' ) return response()->json(['status'=>'error, no wass walidation']); 
+
+        $userParams = [];
+
+        foreach ($data as $key => $value) {
+            if (strpos($key, 'pg_') !== 0 ) {
+                $userParams[$key] = $value;
+            }
+        }
+
+        $jsonString = json_encode($userParams);
+       
+        $lastPart = '';
+
+        $response = Http::asForm()->post($RequestUrl,$data);
+        $xmlObject = simplexml_load_string($response);
+        $url = (string)$xmlObject->pg_redirect_url;
+
+        // dd($response);
+        return response()->json([
+            'data'=>$xmlObject,
+            'status' => 'ok',
+            'xml' => $response->body(),
+        ]);
+    }
+
+
+    
     public function cardSave(Request $req){
 
         $pg_merchant_id = '541637';

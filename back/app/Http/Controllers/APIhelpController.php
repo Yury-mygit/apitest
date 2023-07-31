@@ -14,80 +14,29 @@ class APIhelpController extends Controller
     // Функции обращения
     public function initPayments(Request $request)
     {
-        $id = $this->saveDataToDB($request);
-        
-        // $host = $request->host();
-        // $httpHost = $request->httpHost();
-        // $schemeAndHttpHost = $request->schemeAndHttpHost();
-        // $uri = $request->path();   
-
-        // dd( $host , $httpHost, $schemeAndHttpHost, $uri);
+        // $id = $this->saveDataToDB($request);
     
-        $paramsAll = $request->all();
+        // $paramsAll = $request->all();
 
-        // $paramsWithoutPG = $this->getParamsWithoutPG($request);
-        // $paramsWithPG = array_filter($paramsAll, function($key) {
-        //     return substr($key, 0, 3) === 'pg_';
-        // }, ARRAY_FILTER_USE_KEY);
+        // dd($id);
 
-
-        // dd(json_decode(json_encode($paramsWithoutPG)) );
-
-        // $headers = $request->header();
-
+        
         $errorsGlobal = [];
         
-        $ans = ''; 
+        $ans = validation($request); 
 
+        // dd($ans);
         
-        // Проверка, правильно ли задан заголовок
-        $pos =  headerControll($request);
-        if (count($pos)!=0) {
-            if ($ans==''){
-                $ans = wrongShopNumberXML_9998;
-            }
-            $errorsGlobal = [...$errorsGlobal, ...$pos];
-        }
+        // // Проверка, правильно ли задан заголовок
+        // $errorInHeader =  headerControll($request);
         
-        // Проверка, есть ли все обязательные параметры
-        $pos =  requiredParamsValidation( $request );
-        if (count($pos)!=0) {
-            if ($ans==''){
-                $ans = wrongValidationXML_9403;
-            }
-            $errorsGlobal = [...$errorsGlobal, ...$pos];
-        }
+        
+        // // Проверка, есть ли все обязательные параметры
+        // $errorInRequiredParams =  requiredParamsValidation( $request );
+        
+       
 
-        //Signature check
-        $paramsForSignature = $paramsAll;
-
-        if ($request->missing(['pg_salt'])) {
-            array_push ($errorsGlobal, 'pg_salt отсуствует');
-        } else {
-            $data = $request->All();
-            unset($data['pg_sig']);
-            ksort($data);
-            array_unshift($data, 'init_payment');
-            array_push($data, secret_key);
-            $sig=md5(implode(';', $data));
-            // dd($sig);
-        }
-
-        unset($paramsForSignature['pg_sig']);
-
-        $attempt = Attempt::find($id);
-
-        $attempt->error_desc = json_encode($errorsGlobal);
-
-        $attempt->save();
-
-
-        if (count($errorsGlobal)!=0){
-            return response($ans)
-            ->header('Content-Type', 'text/xml');
-        }
-
-        // $ans = str_replace('<<status>>', $pos['status'], okxml);
+   
         $ans = okxml;
 
         return response($ans)
