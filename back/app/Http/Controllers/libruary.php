@@ -441,9 +441,10 @@ const wrongSigXML_9998 = '
             $sig = md5(implode(';', $requestForSignature)); // Полученная подпись
 
             // dd( implode(';', $requestForSignature));
+            // dd( $sig , $sigFromRequest);
             if ($sigFromRequest!=$sig) {
                 $errors->status='error';
-                $data[] = [
+                $errors->$data[] = [
                             'errorDesc' => 'Sig is wrong',
                             'errorCode' => 9998,
                 ];

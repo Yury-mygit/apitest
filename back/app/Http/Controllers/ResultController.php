@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Http;
 
 use Illuminate\Http\Request;
 use App\Models\NewPayments;
+use App\Models\RequestText;
+use Faker\Core\Number;
 use Illuminate\Support\Facades\DB;
 
 require 'libruary.php';
@@ -175,41 +177,113 @@ class ResultController extends Controller
     }
 
 
-
+// ==================================================================
+// ==================================================================
     public function pay_new(Request $request){
-
+        // dd('ebebebebe');
+        // Определить основные переменные
         $input = $request->all();
         $data  = $input['payment_data'];
         $RequestUrl  = $input['url'];
 
+        //Выполнить валидацию, для проверки, все и данные есть
         if ( validationNoheader($data)->status !=='ok' ) return response()->json(['status'=>'error, no wass walidation']); 
-
+        
+        // Преобразование параметров пользователя в строку
         $userParams = [];
-
         foreach ($data as $key => $value) {
             if (strpos($key, 'pg_') !== 0 ) {
                 $userParams[$key] = $value;
             }
         }
+        $userParamsString = json_encode($userParams) ?? null;
+        
+        // Сохранение данных до запроса в ПС
+        $payment = new NewPayments();
 
-        $jsonString = json_encode($userParams);
-       
-        $lastPart = '';
+        $payment->pg_amount       = $data['pg_amount'];
+        $payment->pg_description  = $data['pg_description'];
+        $payment->pg_salt         = $data['pg_salt'];
+        $payment->pg_order_id     = $data['pg_order_id'] ?? null;
+        $payment->user_params     = $userParamsString;
+        $payment->type            = 'PaymentPage';
 
+        $payment->pg_currency             = $data['pg_currency']                ?? null;
+        $payment->pg_check_url            = $data['pg_check_url']               ?? null; 
+        $payment->pg_result_url           = $data['pg_result_url']              ?? null;
+        $payment->pg_request_method       = $data['pg_request_method']          ?? null;
+        $payment->pg_success_url          = $data['pg_success_url']             ?? null;
+        $payment->pg_failure_url          = $data['pg_failure_url']             ?? null;
+        $payment->pg_user_phone           = $data['pg_user_phone']              ?? null;
+        $payment->pg_user_contact_email   = $data['pg_user_contact_email']      ?? null;
+        $payment->pg_user_ip              = $data['pg_user_ip']                 ?? null;
+        $payment->pg_language             = $data['pg_language']                ?? null;
+        $payment->pg_testing_mode         = $data['pg_testing_mode']            ?? null;
+        $payment->pg_user_id              = $data['pg_user_id']                 ?? null;
+
+        $payment->save();
+
+        $currentPaymentId = $payment->id;
+
+
+        // Отправка запроса и получение ответа
         $response = Http::asForm()->post($RequestUrl,$data);
-        $xmlObject = simplexml_load_string($response);
-        $url = (string)$xmlObject->pg_redirect_url;
+
+        // REFERENCE
+        /* 
+            Ответ придет в виде xml файла
+            <?xml version="1.0" encoding="utf-8"?>
+            <response>
+                <pg_status>ok</pg_status>
+                <pg_payment_id>921502960</pg_payment_id>
+                <pg_redirect_url>https://customer.paybox.money/pay.html?customer=91eb0dcba841c933fa2c08d4de4fc36e</pg_redirect_url>
+                <pg_redirect_url_type>need data</pg_redirect_url_type>
+                <pg_salt>NN899NOfs2EoXWE2</pg_salt>
+                <pg_sig>33a7dcff242aa8a772dc88c78b41e6f7</pg_sig>
+            </response>
+            
+
+
+            
+            Возвращаемая структуру
+            "data": {
+                "pg_status": "ok",
+                "pg_payment_id": "919067960",
+                "pg_redirect_url": "https://customer.paybox.money/pay.html?customer=8d46e96a5c3233869fcc10edaf15d5c0",
+                "pg_redirect_url_type": "need data",
+                "pg_salt": "d8JHeHq5tQG4xTeg",
+                "pg_sig": "811d73004e30ecabd8b3725ec0347753"
+            },
+        */
+
+        $xmlObject = simplexml_load_string($response);  //simplexml_load_string Интерпретирует строку с XML в объект
+        $xml       = $response->body();
+
+        $requestText = new RequestText();
+
+        $requestText->xml_response = $xml;
+        $requestText->save();
+
+        $payment = NewPayments::find($currentPaymentId);
+        $payment -> pg_status         =   $xmlObject->pg_status;
+        $payment -> pg_payment_id     =   (int)$xmlObject->pg_payment_id;
+        $payment -> pg_redirect_url   =   $xmlObject->pg_redirect_url;
+        $payment -> request_text_id   =   $requestText->id;
+        $payment -> save();
+
+        //логирование
+        Storage::disk('local')->put('responce.txt', $xmlObject);
 
         // dd($response);
         return response()->json([
-            'data'=>$xmlObject,
+            'data'   => $xmlObject,
             'status' => 'ok',
-            'xml' => $response->body(),
+            'xml'    => $xml,
         ]);
     }
 
 
-    
+
     public function cardSave(Request $req){
 
         $pg_merchant_id = '541637';
@@ -285,27 +359,65 @@ class ResultController extends Controller
     }
 
     public function result(Request $req){
+        /*
+        {
+            "pg_payment_id": 921563003,
+            "pg_amount": 3,
+            "pg_currency": "RUB",
+            "pg_net_amount": 2.85,
+            "pg_ps_amount": 3,
+            "pg_ps_full_amount": 3,
+            "pg_ps_currency": "RUB",
+            "pg_description": "Описание",
+            "pg_result": 1,
+            "pg_payment_date": "2023-08-02 20:49:36",
+            "pg_can_reject": 1,
+            "pg_user_phone": "79104769733",
+            "pg_need_phone_notification": 0,
+            "pg_user_contact_email": "yury.myworkmail@gmail.com",
+            "pg_need_email_notification": 1,
+            "pg_testing_mode": 1,
+            "pg_payment_method": "bankcard",
+            "pg_captured": 1,
+            "pg_card_pan": "4111-11XX-XXXX-1111",
+            "pg_card_exp": "12/24",
+            "pg_card_owner": "Cardholder Name",
+            "pg_card_brand": "VI",
+            "pg_auth_code": "181218",
+            "test": "ttt",
+            "test1": "111",
+            "pg_salt": "tOvqSu5ZB5N6lwRJ",
+            "pg_sig": "595396e60499b53a5b6a7c637f72ed8f"
+        }
+        */
 
+        $jsonString = $req->getContent();
+        $json   = json_encode($jsonString);
+
+        return response(  strlen($json));
+        // dd('sdfghgfdwedfsgds');
         $input = $req->collect();
 
-        $pay = NewPayments::where('id',$req->input('pg_order_id'))->get();
+        // $pay = NewPayments::where('pg_payment_id',$req->input('pg_payment_id'))->get();
+        $pay = NewPayments::where('pg_payment_id', $req->input('pg_payment_id'))->first();
 
-        if ($pay!=[] && $pay[0]->pg_status =='success' ) 
-            return response('Payment with id ' . $req->input('pg_order_id') . ' Already finished',409);
+
+        // dd($pay);
+
+        // if ($pay!=[] && $pay[0]->pg_status =='success' ) 
+        //     return response('Payment with id ' . $req->input('pg_payment_id') . ' Already finished',409);
         //  return response($pay[0]->pg_status);
 
         $status = $req->input('pg_result') ? "success" : 'fail';
 
+        $pay->pg_description = $req->input('pg_description');
+        $pay->pg_status = $req->input('pg_status');
 
-
-        $affected = DB::table('new_pay')
-              ->where('id', $req->input('pg_order_id'))
-              ->update([
-                'pg_payment_id' => $req->input('pg_payment_id'),
-                'pg_status' => $status
-                ]);
+        // dd($pay);
+        $affected = $pay->save();
+        
             
-
+        // dd($pay);
         Storage::disk('local')->put('resp.txt', $input);
         return response($affected ? 'ok' : 'rejected');
         // return response($affected );
